@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../lib/firebase";
+import { auth, db } from "../lib/firebase";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function Register() {
@@ -14,15 +15,22 @@ export default function Register() {
     setError("");
 
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+
+      await setDoc(doc(db, "users", cred.user.uid), {
+        email: cred.user.email,
+        createdAt: serverTimestamp(),
+        role: "user",
+      });
+
       navigate("/", { replace: true });
-     } catch (err) {
-        console.error(err);
-        setError(err?.message || "Error creating account");
-     }
+    } catch (err) {
+      console.error(err);
+      setError(err?.message || "Error creating account");
+    }
   }
 
-  return ( 
+  return (
     <div style={{ maxWidth: 400, margin: "50px auto" }}>
       <h2>Register</h2>
 
