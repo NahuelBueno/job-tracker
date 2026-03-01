@@ -1,16 +1,68 @@
-# React + Vite
+# Job Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Job Tracker is a web application designed to help users manage and track their job applications in a structured way.
 
-Currently, two official plugins are available:
+The project was built to simulate a real-world product workflow, including authentication, data persistence, state management, and deployment.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Live Demo
 
-## React Compiler
+https://TU-URL-DE-VERCEL.vercel.app
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Features
 
-## Expanding the ESLint configuration
+- User authentication with Firebase
+- Create, update and delete job applications
+- Status tracking (Applied, Interview, Offer, Rejected)
+- Filtering by application status
+- Dashboard overview with basic metrics
+- Persistent storage using Firestore
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Tech Stack
+
+Frontend:
+- React 19
+- Vite
+- React Router
+
+Backend / Services:
+- Firebase Authentication
+- Firebase Firestore
+
+Deployment:
+- Vercel
+
+## Local Setup
+
+Clone the repository:
+
+```bash
+git clone https://github.com/NahuelBueno/job-tracker.git
+cd job-tracker
+npm install
+npm run dev
+```
+
+Create a `.env` file with the following variables:
+
+```
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+```
+
+## Project Goal
+
+The goal of this project was to practice:
+
+- Building a full CRUD application
+- Working with protected routes
+- Managing cloud-based data
+- Handling deployment workflows
+- Structuring a small production-ready React application
+
+## Author
+
+Nahuel Bueno
