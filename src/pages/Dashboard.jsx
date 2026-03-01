@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { signOut } from "firebase/auth";
 import { auth, db } from "../lib/firebase";
 import { useAuth } from "../lib/auth-context";
+import "./Dashboard.css";
 
 import {
   addDoc,
@@ -51,18 +52,20 @@ export default function Dashboard() {
 
   
   const statCardStyle = {
-  border: "1px solid #eaeaea",
-  borderRadius: 14,
-  padding: 14,
-  minWidth: 130,
-  background: "white",
-  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",  
-  justifyContent: "center",
-  textAlign: "center",    
-};
+    border: "1px solid #eaeaea",
+    borderRadius: 14,
+    padding: 10,
+    minWidth: 0,
+    width: "100%",
+    background: "white",
+    boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    textAlign: "center",
+    minHeight: 72,
+  };
 
   const inputStyle = {
   padding: "10px 12px",
@@ -99,13 +102,13 @@ const dangerButtonStyle = {
 };
 
       const statLabelStyle = {
-        fontSize: 12,
+        fontSize: "clamp(12px, 3vw, 14px)",
         opacity: 1,
         color: "#374151", // gris
       };
 
       const statValueStyle = {
-        fontSize: 22,
+        fontSize: "clamp(18px, 4vw, 26px)",
         fontWeight: 800,
         color: "#111827", // negro
       };
@@ -210,15 +213,7 @@ const dangerButtonStyle = {
 
       <h2>Add application</h2>
 
-      <form
-        onSubmit={handleAdd}
-        style={{
-          display: "grid",
-          gap: 10,
-          gridTemplateColumns: "1fr 1fr 180px",
-          alignItems: "end",
-        }}
-      >
+      <form onSubmit={handleAdd} className="addForm">
         <div style={{ display: "grid", gap: 6 }}>
           <label>Company</label>
           <input
@@ -253,7 +248,7 @@ const dangerButtonStyle = {
           </select>
         </div>
 
-        <div style={{ gridColumn: "1 / -1" }}>
+          <div className="addFormButton">
           <button type="submit" style={buttonStyle}>Add</button>
         </div>
       </form>
@@ -265,7 +260,7 @@ const dangerButtonStyle = {
       <h2>My applications</h2>
 
                   {/* ✅ MÉTRICAS GLOBALES POR STATUS */}
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", margin: "12px 0 18px" }}>
+            <div className="metricsGrid">
               <div style={{ ...statCardStyle, borderTop: "4px solid #6b7280" }}>
                 <div style={statLabelStyle}>Total</div>
                 <div style={statValueStyle}>{counts.total}</div>
