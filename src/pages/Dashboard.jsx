@@ -4,6 +4,7 @@ import { auth, db } from "../lib/firebase";
 import { useAuth } from "../lib/auth-context";
 import "./Dashboard.css";
 import { useApplications } from "../hooks/useApplications";
+import { useNavigate } from "react-router-dom";
 
 import {
   addDoc,
@@ -37,7 +38,7 @@ function useStatusCounts(apps = []) {
 
 export default function Dashboard() {
   const { user } = useAuth();
-
+  const navigate = useNavigate();
   const { apps, loading, error, setError, addApplication, updateStatus, deleteApplication } =
     useApplications(user);
   const [company, setCompany] = useState("");
@@ -261,6 +262,17 @@ const dangerButtonStyle = {
                 <div style={statLabelStyle}>Rejected</div>
                 <div style={statValueStyle}>{counts.rejected}</div>
               </div>
+              <div
+                onClick={() => navigate("/analytics")}
+                style={{
+                  ...statCardStyle,
+                  borderTop: "4px solid #111827",
+                  cursor: "pointer",
+                }}
+              >
+              <div style={statLabelStyle}>Advanced</div>
+              <div style={{ ...statValueStyle, fontSize: 32 }}>+</div>
+            </div>
             </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
