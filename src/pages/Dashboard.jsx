@@ -3,6 +3,7 @@ import { signOut } from "firebase/auth";
 import { auth, db } from "../lib/firebase";
 import { useAuth } from "../lib/auth-context";
 import "./Dashboard.css";
+import { useApplications } from "../hooks/useApplications";
 
 import {
   addDoc,
@@ -16,7 +17,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 
-function useStatusCounts(apps) {
+function useStatusCounts(apps = []) {
   return useMemo(() => {
     const counts = {
       total: apps.length,
@@ -37,16 +38,16 @@ function useStatusCounts(apps) {
 export default function Dashboard() {
   const { user } = useAuth();
 
+  const { apps, loading, error, setError, addApplication, updateStatus, deleteApplication } =
+    useApplications(user);
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
   const [status, setStatus] = useState("applied");
-  const [error, setError] = useState("");
-  const [apps, setApps] = useState([]);
+  const [setApps] = useState([]);
   const [filter, setFilter] = useState("all");
-  const [loading, setLoading] = useState(true);
-
-  const filteredApps = filter === "all" ? apps : apps.filter((a) => a.status === filter);
-
+  const [setLoading] = useState(true);
+  const filteredApps =
+    filter === "all" ? apps : apps.filter((a) => a.status === filter);
   // 🔹 MÉTRICAS GLOBALES
   const counts = useStatusCounts(apps);
 
@@ -114,31 +115,6 @@ const dangerButtonStyle = {
       };
 
 
-  // READ: escuchar en tiempo real tus applications
-  useEffect(() => {
-    if (!user) return;
-
-    setLoading(true);
-
-    const appsRef = collection(db, "users", user.uid, "applications");
-    const q = query(appsRef, orderBy("createdAt", "desc"));
-
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        setApps(rows);
-        setLoading(false);
-      },
-      (err) => {
-        console.error(err);
-        setError(err?.message || "Error loading applications");
-        setLoading(false);
-      }
-    );
-
-    return () => unsub();
-  }, [user]);
 
   // CREATE: agregar una application
   async function handleAdd(e) {
@@ -253,7 +229,7 @@ const dangerButtonStyle = {
         </div>
       </form>
 
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
+              {error && <p style={{ color: "crimson" }}>{error}</p>}
 
       <hr style={{ margin: "18px 0" }} />
 
@@ -302,7 +278,7 @@ const dangerButtonStyle = {
         </select>
       </div>
 
-                    {loading ? (
+                 {loading ? (
                 <p style={{ opacity: 0.8 }}>Loading applications...</p>
               ) : filteredApps.length === 0 ? (
                 <p>No applications yet. Add your first one 👆</p>
