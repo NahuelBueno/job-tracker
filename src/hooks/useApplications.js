@@ -8,8 +8,9 @@ import {
   onSnapshot,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
-  updateDoc,
+  Timestamp,
 } from "firebase/firestore";
 
 export function useApplications(user) {
@@ -52,28 +53,77 @@ export function useApplications(user) {
       setError("");
 
       const appsRef = collection(db, "users", user.uid, "applications");
+      const now = Timestamp.now(); // ✅ permitido dentro de arrays
+
       await addDoc(appsRef, {
         company: company.trim(),
         role: role.trim(),
         status,
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        statusHistory: [{ status, at: now }],
       });
     },
     [user]
   );
 
-  // UPDATE
-  const updateStatus = useCallback(
-    async (appId, newStatus) => {
-      if (!user) return;
+// UPDATE (status + statusHistory) - no duplicates + auto-complete (Option C)
+const updateStatus = useCallback(
+  async (appId, newStatus) => {
+    if (!user) return;
 
-      setError("");
-      await updateDoc(doc(db, "users", user.uid, "applications", appId), {
+    setError("");
+
+    const ref = doc(db, "users", user.uid, "applications", appId);
+
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) throw new Error("Application not found");
+
+      const data = snap.data();
+      const history = Array.isArray(data?.statusHistory) ? data.statusHistory : [];
+
+      // Usamos el último status real del historial como fuente de verdad (si existe)
+      const lastStatus = history.length ? history[history.length - 1]?.status : data?.status;
+
+      // No-op si no hay cambio
+      if (lastStatus === newStatus) return;
+
+      // Pipeline canónico
+      const PIPELINE = ["applied", "interview", "offer"];
+
+      const fromIdx = PIPELINE.indexOf(lastStatus);
+      const toIdx = PIPELINE.indexOf(newStatus);
+
+      const baseMs = Date.now();
+      const eventsToAppend = [];
+
+      // Auto-complete solo si es salto hacia adelante dentro del pipeline
+      // (ej: applied -> offer). Si es rejected, no forzamos intermedios.
+      if (fromIdx !== -1 && toIdx !== -1 && toIdx > fromIdx) {
+        for (let i = fromIdx + 1; i <= toIdx; i++) {
+          eventsToAppend.push({
+            status: PIPELINE[i],
+            at: Timestamp.fromMillis(baseMs + (i - (fromIdx + 1))), // 0ms,1ms...
+          });
+        }
+      } else {
+        // Caso normal: append solo el nuevoStatus
+        eventsToAppend.push({
+          status: newStatus,
+          at: Timestamp.fromMillis(baseMs),
+        });
+      }
+
+      tx.update(ref, {
         status: newStatus,
+        updatedAt: serverTimestamp(),
+        statusHistory: [...history, ...eventsToAppend],
       });
-    },
-    [user]
-  );
+    });
+  },
+  [user]
+);
 
   // DELETE
   const deleteApplication = useCallback(

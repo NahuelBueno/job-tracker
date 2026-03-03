@@ -1,22 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { signOut } from "firebase/auth";
-import { auth, db } from "../lib/firebase";
+import { auth } from "../lib/firebase";
 import { useAuth } from "../lib/auth-context";
 import "./Dashboard.css";
 import { useApplications } from "../hooks/useApplications";
 import { useNavigate } from "react-router-dom";
 
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-  updateDoc,
-} from "firebase/firestore";
 
 function useStatusCounts(apps = []) {
   return useMemo(() => {
@@ -118,32 +107,30 @@ const dangerButtonStyle = {
 
 
   // CREATE: agregar una application
-  async function handleAdd(e) {
-    e.preventDefault();
-    setError("");
+      async function handleAdd(e) {
+        e.preventDefault();
+        setError("");
 
-    if (!company.trim() || !role.trim()) {
-      setError("Company and role are required");
-      return;
-    }
+        if (!company.trim() || !role.trim()) {
+          setError("Company and role are required");
+          return;
+        }
 
-    try {
-      const appsRef = collection(db, "users", user.uid, "applications");
-      await addDoc(appsRef, {
-        company: company.trim(),
-        role: role.trim(),
-        status,
-        createdAt: serverTimestamp(),
-      });
+        try {
+          await addApplication({
+            company: company.trim(),
+            role: role.trim(),
+            status,
+          });
 
-      setCompany("");
-      setRole("");
-      setStatus("applied");
-    } catch (err) {
-      console.error(err);
-      setError(err?.message || "Error creating application");
-    }
-  }
+          setCompany("");
+          setRole("");
+          setStatus("applied");
+        } catch (err) {
+          console.error(err);
+          setError(err?.message || "Error creating application");
+        }
+      }
 
         async function handleDelete(appId) {
         setError("");
@@ -160,17 +147,16 @@ const dangerButtonStyle = {
       }
 
   // UPDATE: cambiar status
-  async function handleStatusChange(appId, newStatus) {
-    setError("");
-    try {
-      await updateDoc(doc(db, "users", user.uid, "applications", appId), {
-        status: newStatus,
-      });
-    } catch (err) {
-      console.error(err);
-      setError(err?.message || "Error updating status");
+    async function handleStatusChange(appId, newStatus) {
+      setError("");
+
+      try {
+        await updateStatus(appId, newStatus);
+      } catch (err) {
+        console.error(err);
+        setError(err?.message || "Error updating status");
+      }
     }
-  }
 
   const canAdd = company.trim() && role.trim();
 

@@ -3,20 +3,45 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../lib/auth-context";
 import { useApplications } from "../hooks/useApplications";
 
+function hasReached(history, status) {
+  if (!Array.isArray(history)) return false;
+  return history.some((h) => h?.status === status);
+}
+
 export default function Analytics() {
   const { user } = useAuth();
   const { apps, loading, error } = useApplications(user);
 
   const stats = useMemo(() => {
     const total = apps.length;
-    const applied = apps.filter((a) => a.status === "applied").length;
-    const interview = apps.filter((a) => a.status === "interview").length;
-    const offer = apps.filter((a) => a.status === "offer").length;
 
-    const conversionRate = applied ? interview / applied : 0;
-    const offerRate = total ? offer / total : 0;
+    // Pipeline counts (current status)
+    const counts = { applied: 0, interview: 0, offer: 0, rejected: 0 };
 
-    return { total, applied, interview, offer, conversionRate, offerRate };
+    let reachedInterview = 0;
+    let reachedOffer = 0;
+
+    for (const a of apps) {
+      const s = a.status;
+      if (counts[s] !== undefined) counts[s] += 1;
+
+      const history = a.statusHistory; // sin fallback (porque reseteaste datos)
+
+      if (hasReached(history, "interview")) reachedInterview += 1;
+      if (hasReached(history, "offer")) reachedOffer += 1;
+    }
+
+    const conversionRate = total ? reachedInterview / total : 0;
+    const offerRate = total ? reachedOffer / total : 0;
+
+    return {
+      total,
+      counts,
+      reachedInterview,
+      reachedOffer,
+      conversionRate,
+      offerRate,
+    };
   }, [apps]);
 
   return (
@@ -59,10 +84,13 @@ export default function Analytics() {
               }}
             >
               <div style={{ opacity: 0.8, color: "#374151" }}>
-                Conversion rate (Interview / Applied)
+                Conversion rate (Reached Interview / Total)
               </div>
               <div style={{ fontSize: 28, fontWeight: 800, color: "#111827" }}>
                 {Math.round(stats.conversionRate * 100)}%
+              </div>
+              <div style={{ opacity: 0.8, marginTop: 4, color: "#6b7280" }}>
+                {stats.reachedInterview}/{stats.total} reached interview
               </div>
             </div>
 
@@ -77,10 +105,13 @@ export default function Analytics() {
               }}
             >
               <div style={{ opacity: 0.8, color: "#374151" }}>
-                Offer rate (Offer / Total)
+                Offer rate (Reached Offer / Total)
               </div>
               <div style={{ fontSize: 28, fontWeight: 800, color: "#111827" }}>
                 {Math.round(stats.offerRate * 100)}%
+              </div>
+              <div style={{ opacity: 0.8, marginTop: 4, color: "#6b7280" }}>
+                {stats.reachedOffer}/{stats.total} reached offer
               </div>
             </div>
           </div>
@@ -96,12 +127,13 @@ export default function Analytics() {
             }}
           >
             <div style={{ opacity: 0.8, marginBottom: 8, color: "#374151" }}>
-              Counts
+              Counts (current pipeline)
             </div>
             <div>Total: {stats.total}</div>
-            <div>Applied: {stats.applied}</div>
-            <div>Interview: {stats.interview}</div>
-            <div>Offer: {stats.offer}</div>
+            <div>Applied: {stats.counts.applied}</div>
+            <div>Interview: {stats.counts.interview}</div>
+            <div>Offer: {stats.counts.offer}</div>
+            <div>Rejected: {stats.counts.rejected}</div>
           </div>
 
           <div
