@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "../lib/firebase";
 import { useAuth } from "../lib/auth-context";
 import "./Dashboard.css";
 import { useApplications } from "../hooks/useApplications";
 import { useNavigate } from "react-router-dom";
-
 
 function useStatusCounts(apps = []) {
   return useMemo(() => {
@@ -28,20 +27,20 @@ function useStatusCounts(apps = []) {
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+
   const { apps, loading, error, setError, addApplication, updateStatus, deleteApplication } =
     useApplications(user);
+
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
   const [status, setStatus] = useState("applied");
-  const [setApps] = useState([]);
   const [filter, setFilter] = useState("all");
-  const [setLoading] = useState(true);
-  const filteredApps =
-    filter === "all" ? apps : apps.filter((a) => a.status === filter);
+
+  const filteredApps = filter === "all" ? apps : apps.filter((a) => a.status === filter);
+
   // 🔹 MÉTRICAS GLOBALES
   const counts = useStatusCounts(apps);
 
-  
   const statCardStyle = {
     border: "1px solid #eaeaea",
     borderRadius: 14,
@@ -59,104 +58,103 @@ export default function Dashboard() {
   };
 
   const inputStyle = {
-  padding: "10px 12px",
-  borderRadius: 10,
-  border: "1px solid #e5e5e5",
-  background: "white",
-  color: "#111827",
-};
+    padding: "10px 12px",
+    borderRadius: 10,
+    border: "1px solid #e5e5e5",
+    background: "white",
+    color: "#111827",
+  };
 
-const selectStyle = {
-  padding: "10px 12px",
-  borderRadius: 10,
-  border: "1px solid #e5e5e5",
-  background: "white",
-  color: "#111827",
-  cursor: "pointer",
-};
+  const selectStyle = {
+    padding: "10px 12px",
+    borderRadius: 10,
+    border: "1px solid #e5e5e5",
+    background: "white",
+    color: "#111827",
+    cursor: "pointer",
+  };
 
-const buttonStyle = {
-  padding: "10px 12px",
-  borderRadius: 10,
-  border: "1px solid #e5e5e5",
-  background: "white",
-  fontWeight: 700,
-  cursor: "pointer",
-  color: "#111827",
-};
+  const buttonStyle = {
+    padding: "10px 12px",
+    borderRadius: 10,
+    border: "1px solid #e5e5e5",
+    background: "white",
+    fontWeight: 700,
+    cursor: "pointer",
+    color: "#111827",
+  };
 
-const dangerButtonStyle = {
-  ...buttonStyle,
-  border: "1px solid #fecaca",
-  background: "#fef2f2",
-  color: "#991b1b",
-};
+  const dangerButtonStyle = {
+    ...buttonStyle,
+    border: "1px solid #fecaca",
+    background: "#fef2f2",
+    color: "#991b1b",
+  };
 
-      const statLabelStyle = {
-        fontSize: "clamp(12px, 3vw, 14px)",
-        opacity: 1,
-        color: "#374151", // gris
-      };
+  const statLabelStyle = {
+    fontSize: "clamp(12px, 3vw, 14px)",
+    opacity: 1,
+    color: "#374151",
+  };
 
-      const statValueStyle = {
-        fontSize: "clamp(18px, 4vw, 26px)",
-        fontWeight: 800,
-        color: "#111827", // negro
-      };
-
-
+  const statValueStyle = {
+    fontSize: "clamp(18px, 4vw, 26px)",
+    fontWeight: 800,
+    color: "#111827",
+  };
 
   // CREATE: agregar una application
-      async function handleAdd(e) {
-        e.preventDefault();
-        setError("");
+  async function handleAdd(e) {
+    e.preventDefault();
+    setError("");
 
-        if (!company.trim() || !role.trim()) {
-          setError("Company and role are required");
-          return;
-        }
+    if (!company.trim() || !role.trim()) {
+      setError("Company and role are required");
+      return;
+    }
 
-        try {
-          await addApplication({
-            company: company.trim(),
-            role: role.trim(),
-            status,
-          });
+    try {
+      await addApplication({
+        company: company.trim(),
+        role: role.trim(),
+        status,
+      });
 
-          setCompany("");
-          setRole("");
-          setStatus("applied");
-        } catch (err) {
-          console.error(err);
-          setError(err?.message || "Error creating application");
-        }
-      }
+      setCompany("");
+      setRole("");
+      setStatus("applied");
+    } catch (err) {
+      console.error(err);
+      setError(err?.message || "Error creating application");
+    }
+  }
 
-        async function handleDelete(appId) {
-        setError("");
+  // DELETE
+  async function handleDelete(appId) {
+    setError("");
 
-        const ok = window.confirm("Delete this application? This action cannot be undone.");
-        if (!ok) return;
+    const ok = window.confirm("Delete this application? This action cannot be undone.");
+    if (!ok) return;
 
-        try {
-          await deleteDoc(doc(db, "users", user.uid, "applications", appId));
-        } catch (err) {
-          console.error(err);
-          setError(err?.message || "Error deleting application");
-        }
-      }
+    try {
+      await deleteApplication(appId);
+    } catch (err) {
+      console.error(err);
+      setError(err?.message || "Error deleting application");
+    }
+  }
 
   // UPDATE: cambiar status
-    async function handleStatusChange(appId, newStatus) {
-      setError("");
+  async function handleStatusChange(appId, newStatus) {
+    setError("");
 
-      try {
-        await updateStatus(appId, newStatus);
-      } catch (err) {
-        console.error(err);
-        setError(err?.message || "Error updating status");
-      }
+    try {
+      await updateStatus(appId, newStatus);
+    } catch (err) {
+      console.error(err);
+      setError(err?.message || "Error updating status");
     }
+  }
 
   const canAdd = company.trim() && role.trim();
 
@@ -199,11 +197,7 @@ const dangerButtonStyle = {
 
         <div style={{ display: "grid", gap: 6 }}>
           <label>Status</label>
-          <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                style={selectStyle}
-              >
+          <select value={status} onChange={(e) => setStatus(e.target.value)} style={selectStyle}>
             <option value="applied">Applied</option>
             <option value="interview">Interview</option>
             <option value="offer">Offer</option>
@@ -211,63 +205,62 @@ const dangerButtonStyle = {
           </select>
         </div>
 
-          <div className="addFormButton">
-          <button type="submit" style={buttonStyle}>Add</button>
+        <div className="addFormButton">
+          <button type="submit" style={buttonStyle} disabled={!canAdd}>
+            Add
+          </button>
         </div>
       </form>
 
-              {error && <p style={{ color: "crimson" }}>{error}</p>}
+      {error && <p style={{ color: "crimson" }}>{error}</p>}
 
       <hr style={{ margin: "18px 0" }} />
 
       <h2>My applications</h2>
 
-                  {/* ✅ MÉTRICAS GLOBALES POR STATUS */}
-            <div className="metricsGrid">
-              <div style={{ ...statCardStyle, borderTop: "4px solid #6b7280" }}>
-                <div style={statLabelStyle}>Total</div>
-                <div style={statValueStyle}>{counts.total}</div>
-              </div>
+      {/* ✅ MÉTRICAS GLOBALES POR STATUS */}
+      <div className="metricsGrid">
+        <div style={{ ...statCardStyle, borderTop: "4px solid #6b7280" }}>
+          <div style={statLabelStyle}>Total</div>
+          <div style={statValueStyle}>{counts.total}</div>
+        </div>
 
-              <div style={{ ...statCardStyle, borderTop: "4px solid #6366f1" }}>
-                <div style={statLabelStyle}>Applied</div>
-                <div style={statValueStyle}>{counts.applied}</div>
-              </div>
+        <div style={{ ...statCardStyle, borderTop: "4px solid #6366f1" }}>
+          <div style={statLabelStyle}>Applied</div>
+          <div style={statValueStyle}>{counts.applied}</div>
+        </div>
 
-              <div style={{ ...statCardStyle, borderTop: "4px solid #0ea5e9" }}>
-                <div style={statLabelStyle}>Interview</div>
-                <div style={statValueStyle}>{counts.interview}</div>
-              </div>
+        <div style={{ ...statCardStyle, borderTop: "4px solid #0ea5e9" }}>
+          <div style={statLabelStyle}>Interview</div>
+          <div style={statValueStyle}>{counts.interview}</div>
+        </div>
 
-              <div style={{ ...statCardStyle, borderTop: "4px solid #10b981" }}>
-                <div style={statLabelStyle}>Offer</div>
-                <div style={statValueStyle}>{counts.offer}</div>
-              </div>
+        <div style={{ ...statCardStyle, borderTop: "4px solid #10b981" }}>
+          <div style={statLabelStyle}>Offer</div>
+          <div style={statValueStyle}>{counts.offer}</div>
+        </div>
 
-              <div style={{ ...statCardStyle, borderTop: "4px solid #ef4444" }}>
-                <div style={statLabelStyle}>Rejected</div>
-                <div style={statValueStyle}>{counts.rejected}</div>
-              </div>
-              <div
-                onClick={() => navigate("/analytics")}
-                style={{
-                  ...statCardStyle,
-                  borderTop: "4px solid #111827",
-                  cursor: "pointer",
-                }}
-              >
-              <div style={statLabelStyle}>Advanced</div>
-              <div style={{ ...statValueStyle, fontSize: 32 }}>+</div>
-            </div>
-            </div>
+        <div style={{ ...statCardStyle, borderTop: "4px solid #ef4444" }}>
+          <div style={statLabelStyle}>Rejected</div>
+          <div style={statValueStyle}>{counts.rejected}</div>
+        </div>
+
+        <div
+          onClick={() => navigate("/analytics")}
+          style={{
+            ...statCardStyle,
+            borderTop: "4px solid #111827",
+            cursor: "pointer",
+          }}
+        >
+          <div style={statLabelStyle}>Advanced</div>
+          <div style={{ ...statValueStyle, fontSize: 32 }}>+</div>
+        </div>
+      </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
         <strong>Filter:</strong>
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          style={selectStyle}
-        >
+        <select value={filter} onChange={(e) => setFilter(e.target.value)} style={selectStyle}>
           <option value="all">All</option>
           <option value="applied">Applied</option>
           <option value="interview">Interview</option>
@@ -276,13 +269,13 @@ const dangerButtonStyle = {
         </select>
       </div>
 
-                 {loading ? (
-                <p style={{ opacity: 0.8 }}>Loading applications...</p>
-              ) : filteredApps.length === 0 ? (
-                <p>No applications yet. Add your first one 👆</p>
-              ) : (
-                <div style={{ display: "grid", gap: 10 }}>
-                  {filteredApps.map((a) => (
+      {loading ? (
+        <p style={{ opacity: 0.8 }}>Loading applications...</p>
+      ) : filteredApps.length === 0 ? (
+        <p>No applications yet. Add your first one 👆</p>
+      ) : (
+        <div style={{ display: "grid", gap: 10 }}>
+          {filteredApps.map((a) => (
             <div
               key={a.id}
               style={{
@@ -311,9 +304,7 @@ const dangerButtonStyle = {
               </div>
 
               <div style={{ marginTop: 10 }}>
-                <button
-                  onClick={() => handleDelete(a.id)}
-                  style={dangerButtonStyle}>
+                <button onClick={() => handleDelete(a.id)} style={dangerButtonStyle}>
                   Delete
                 </button>
               </div>

@@ -13,14 +13,24 @@ import {
   Timestamp,
 } from "firebase/firestore";
 
+const PIPELINE = ["applied", "interview", "offer"];
+
 export function useApplications(user) {
   const [apps, setApps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const clearError = useCallback(() => setError(""), []);
+
   // READ realtime
   useEffect(() => {
-    if (!user) return;
+    // Si no hay user, reseteamos estado de manera prolija
+    if (!user) {
+      setApps([]);
+      setLoading(false);
+      setError("");
+      return;
+    }
 
     setLoading(true);
     setError("");
@@ -48,101 +58,107 @@ export function useApplications(user) {
   // CREATE
   const addApplication = useCallback(
     async ({ company, role, status }) => {
-      if (!user) return;
+      if (!user) throw new Error("Not authenticated");
 
-      setError("");
+      const companyClean = (company || "").trim();
+      const roleClean = (role || "").trim();
+
+      if (!companyClean || !roleClean) {
+        throw new Error("Company and role are required");
+      }
+
+      clearError();
 
       const appsRef = collection(db, "users", user.uid, "applications");
-      const now = Timestamp.now(); // ✅ permitido dentro de arrays
+      const now = Timestamp.now(); // ok para arrays
 
       await addDoc(appsRef, {
-        company: company.trim(),
-        role: role.trim(),
+        company: companyClean,
+        role: roleClean,
         status,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         statusHistory: [{ status, at: now }],
       });
     },
-    [user]
+    [user, clearError]
   );
 
-// UPDATE (status + statusHistory) - no duplicates + auto-complete (Option C)
-const updateStatus = useCallback(
-  async (appId, newStatus) => {
-    if (!user) return;
+  // UPDATE (status + statusHistory) - no duplicates + auto-complete (Option C)
+  const updateStatus = useCallback(
+    async (appId, newStatus) => {
+      if (!user) throw new Error("Not authenticated");
 
-    setError("");
+      clearError();
 
-    const ref = doc(db, "users", user.uid, "applications", appId);
+      const ref = doc(db, "users", user.uid, "applications", appId);
 
-    await runTransaction(db, async (tx) => {
-      const snap = await tx.get(ref);
-      if (!snap.exists()) throw new Error("Application not found");
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists()) throw new Error("Application not found");
 
-      const data = snap.data();
-      const history = Array.isArray(data?.statusHistory) ? data.statusHistory : [];
+        const data = snap.data();
+        const history = Array.isArray(data?.statusHistory) ? data.statusHistory : [];
 
-      // Usamos el último status real del historial como fuente de verdad (si existe)
-      const lastStatus = history.length ? history[history.length - 1]?.status : data?.status;
+        // Fuente de verdad: último status del historial
+        const lastStatus = history.length
+          ? history[history.length - 1]?.status
+          : data?.status;
 
-      // No-op si no hay cambio
-      if (lastStatus === newStatus) return;
+        if (lastStatus === newStatus) return;
 
-      // Pipeline canónico
-      const PIPELINE = ["applied", "interview", "offer"];
+        const fromIdx = PIPELINE.indexOf(lastStatus);
+        const toIdx = PIPELINE.indexOf(newStatus);
 
-      const fromIdx = PIPELINE.indexOf(lastStatus);
-      const toIdx = PIPELINE.indexOf(newStatus);
+        const baseMs = Timestamp.now().toMillis();
+        const eventsToAppend = [];
 
-      const baseMs = Date.now();
-      const eventsToAppend = [];
-
-      // Auto-complete solo si es salto hacia adelante dentro del pipeline
-      // (ej: applied -> offer). Si es rejected, no forzamos intermedios.
-      if (fromIdx !== -1 && toIdx !== -1 && toIdx > fromIdx) {
-        for (let i = fromIdx + 1; i <= toIdx; i++) {
+        // Auto-complete SOLO si es salto hacia adelante dentro del pipeline
+        // Ej: applied -> offer agrega interview.
+        if (fromIdx !== -1 && toIdx !== -1 && toIdx > fromIdx) {
+          for (let i = fromIdx + 1; i <= toIdx; i++) {
+            eventsToAppend.push({
+              status: PIPELINE[i],
+              at: Timestamp.fromMillis(baseMs + (i - (fromIdx + 1))), // 0ms,1ms...
+            });
+          }
+        } else {
+          // Caso normal (incluye rejected): agregar solo el nuevo status
           eventsToAppend.push({
-            status: PIPELINE[i],
-            at: Timestamp.fromMillis(baseMs + (i - (fromIdx + 1))), // 0ms,1ms...
+            status: newStatus,
+            at: Timestamp.fromMillis(baseMs),
           });
         }
-      } else {
-        // Caso normal: append solo el nuevoStatus
-        eventsToAppend.push({
-          status: newStatus,
-          at: Timestamp.fromMillis(baseMs),
-        });
-      }
 
-      tx.update(ref, {
-        status: newStatus,
-        updatedAt: serverTimestamp(),
-        statusHistory: [...history, ...eventsToAppend],
+        tx.update(ref, {
+          status: newStatus,
+          updatedAt: serverTimestamp(),
+          statusHistory: [...history, ...eventsToAppend],
+        });
       });
-    });
-  },
-  [user]
-);
+    },
+    [user, clearError]
+  );
 
   // DELETE
   const deleteApplication = useCallback(
     async (appId) => {
-      if (!user) return;
+      if (!user) throw new Error("Not authenticated");
 
-      setError("");
+      clearError();
       await deleteDoc(doc(db, "users", user.uid, "applications", appId));
     },
-    [user]
+    [user, clearError]
   );
 
   return {
     apps,
     loading,
     error,
-    setError,
+    clearError,
     addApplication,
     updateStatus,
     deleteApplication,
+    setError,
   };
 }
